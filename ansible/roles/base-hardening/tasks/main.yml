@@ -1,0 +1,51 @@
+---
+ - name: Ensure deploy user exists and is sudoer
+   user:
+     name: deploy
+     groups: sudo
+     shell: /bin/bash
+     state: present
+     create_home: true
+
+ - name: Authorize SSH key for deploy user (placeholder)
+   authorized_key:
+     user: deploy
+     state: present
+     key: "{{ lookup('file', lookup('vars', 'ssh_public_key_file') | default('~/.ssh/id_rsa.pub')) }}"
+
+ - name: Harden SSH - disable password auth
+   lineinfile:
+     path: /etc/ssh/sshd_config
+     regexp: '^PasswordAuthentication'
+     line: 'PasswordAuthentication no'
+     state: present
+   notify: restart ssh
+
+ - name: Ensure UFW installed
+   apt:
+     name: ufw
+     state: present
+     update_cache: yes
+
+ - name: Allow SSH from admin CIDR
+   ufw:
+     rule: allow
+     port: 22
+     proto: tcp
+     from_ip: "{{ admin_allowed_cidr }}"
+
+ - name: Allow HTTP
+   ufw:
+     rule: allow
+     port: 80
+     proto: tcp
+
+ - name: Allow HTTPS
+   ufw:
+     rule: allow
+     port: 443
+     proto: tcp
+
+ - name: Enable UFW
+   ufw:
+     state: enabled

@@ -1,0 +1,24 @@
+---
+- name: Install prerequisites
+  apt:
+    name: [curl]
+    state: present
+    update_cache: yes
+
+- name: Install k3s server
+  shell: |
+    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san {{ ansible_host }}" sh -s - server --node-ip {{ ansible_host }}
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for k3s to be active
+  command: systemctl is-active --quiet k3s
+  register: k3s_active
+  retries: 10
+  delay: 3
+  until: k3s_active.rc == 0
+
+- name: Save k3s token for agents (copy to /tmp/k3s_token)
+  shell: cat /var/lib/rancher/k3s/server/node-token > /tmp/k3s_token
+  args:
+    creates: /tmp/k3s_token

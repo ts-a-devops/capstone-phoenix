@@ -1,0 +1,11 @@
+[k3s_control]
+# control ansible_host=1.2.3.4 ansible_user=ubuntu
+
+[k3s_workers]
+# worker1 ansible_host=1.2.3.5 ansible_user=ubuntu
+# worker2 ansible_host=1.2.3.6 ansible_user=ubuntu
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+ssh_private_key_file=~/.ssh/my-key.pem
+admin_allowed_cidr=203.0.113.4/32

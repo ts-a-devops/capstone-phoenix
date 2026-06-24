@@ -1,0 +1,18 @@
+---
+- name: Provision k3s cluster - common hardening
+  hosts: k3s_control:k3s_workers
+  become: true
+  roles:
+    - role: base-hardening
+
+- name: Provision k3s server
+  hosts: k3s_control
+  become: true
+  roles:
+    - role: k3s-server
+
+- name: Join k3s agents
+  hosts: k3s_workers
+  become: true
+  roles:
+    - role: k3s-agent
