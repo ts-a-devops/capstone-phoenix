@@ -1,0 +1,8 @@
+## Example terraform variables for infra
+ssh_key_name        = "your-ec2-key"
+ssh_allowed_cidr    = "203.0.113.4/32" # replace with your IP
+aws_region          = "us-east-1"
+cluster_name        = "capstone-phoenix"
+control_instance_type = "t3.small"
+worker_instance_type  = "t3.small"
+worker_count        = 2
