@@ -1,0 +1,22 @@
+# Copy to terraform.tfvars (gitignored) and fill in. No secrets here — provider auth is ~/.oci/config.
+
+# --- required ---
+region           = "uk-london-1"  # your tenancy home region (declared in provider.tf)
+compartment_ocid = "ocid1.compartment.oc1..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+allowed_ssh_cidr = "203.0.113.10/32"  # YOUR public IP /32 — find it: curl ifconfig.me
+
+# --- optional overrides (defaults shown; uncomment to change) ---
+# name_prefix         = "phoenix"
+# ssh_public_key_path = "~/.ssh/oci_phoenix.pub"
+# oci_config_profile  = "DEFAULT"
+# vcn_cidr            = "10.0.0.0/16"
+# subnet_cidr         = "10.0.1.0/24"
+# availability_domain_number = 1     # bump (2,3) if A1 capacity is unavailable
+# worker_count        = 2
+# server_shape        = "VM.Standard.A1.Flex"
+# worker_shape        = "VM.Standard.A1.Flex"
+# server_ocpus        = 1
+# server_memory_gb    = 6
+# worker_ocpus        = 1
+# worker_memory_gb    = 9            # 1 server (6) + 2 workers (9+9) = 24 GB = full Always Free A1
+# boot_volume_gb      = 50
