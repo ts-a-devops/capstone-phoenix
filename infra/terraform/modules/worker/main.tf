@@ -1,42 +1,63 @@
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"]
+  owners      = ["099720109477"] # Canonical
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
   }
 }
 
-resource "aws_security_group" "worker_sg" {
-  name   = "${var.cluster_name}-worker-sg"
-  vpc_id = var.vpc_id
+resource "aws_security_group" "worker" {
+  name        = "${var.cluster_name}-worker-sg"
+  description = "Worker nodes: SSH (admin), intra-VPC all traffic"
+  vpc_id      = var.vpc_id
 
   ingress {
+    description = "SSH from admin IP only"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = [var.ssh_allowed_cidr]
   }
 
-  # Allow node-to-node & K3s agent traffic from within the VPC
+  # Allow all intra-VPC traffic for node-to-node k3s/CNI communication
   ingress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    cidr_blocks     = [var.vpc_cidr]
+    description = "All intra-VPC (flannel, kubelet, node-to-node)"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.vpc_cidr]
   }
 
-  egress { from_port = 0; to_port = 0; protocol = "-1"; cidr_blocks = ["0.0.0.0/0"] }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "${var.cluster_name}-worker-sg" }
 }
 
 resource "aws_instance" "worker" {
-  count                  = var.count
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
-  subnet_id              = element(var.public_subnet_ids, count.index % length(var.public_subnet_ids))
+  count                       = var.worker_count
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.instance_type
+  # Spread workers across subnets (= AZs) so pod anti-affinity works
+  subnet_id                   = var.public_subnet_ids[count.index % length(var.public_subnet_ids)]
   associate_public_ip_address = true
-  key_name               = var.ssh_key_name
-  vpc_security_group_ids = concat([aws_security_group.worker_sg.id], var.extra_security_group_ids)
+  key_name                    = var.ssh_key_name
+  vpc_security_group_ids      = concat([aws_security_group.worker.id], var.extra_security_group_ids)
 
-  tags = { Name = "${var.cluster_name}-worker-${count.index}" }
+  root_block_device {
+    volume_size           = 20
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
+
+  tags = { Name = "${var.cluster_name}-worker-${count.index}", Role = "worker" }
 }

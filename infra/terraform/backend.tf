@@ -1,8 +1,7 @@
 terraform {
-  required_version = ">= 1.0"
-
   backend "s3" {
-    # Replace these values with a real remote state bucket and lock table
+    # Run infra/terraform/remote-state/ first to create this bucket and table.
+    # Then replace these placeholders and run: terraform init -reconfigure
     bucket         = "REPLACE_WITH_REMOTE_STATE_BUCKET"
     key            = "capstone-phoenix/terraform.tfstate"
     region         = "us-east-1"

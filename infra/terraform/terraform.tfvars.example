@@ -1,8 +1,19 @@
-## Example terraform variables for infra
-ssh_key_name        = "your-ec2-key"
-ssh_allowed_cidr    = "203.0.113.4/32" # replace with your IP
-aws_region          = "us-east-1"
-cluster_name        = "capstone-phoenix"
+# Copy to terraform.tfvars and fill in real values.
+# NEVER commit terraform.tfvars — it is in .gitignore.
+
+aws_region   = "us-east-1"
+cluster_name = "capstone-phoenix"
+
+# VPC — 2 subnets in 2 AZs so workers land in different AZs
+vpc_cidr            = "10.10.0.0/16"
+public_subnet_cidrs = ["10.10.1.0/24", "10.10.2.0/24"]
+availability_zones  = ["us-east-1a", "us-east-1b"]
+
+# Compute
 control_instance_type = "t3.small"
 worker_instance_type  = "t3.small"
-worker_count        = 2
+worker_count          = 2
+
+# Auth — replace with your actual key pair name and your public IP
+ssh_key_name     = "your-keypair-name"
+ssh_allowed_cidr = "YOUR_PUBLIC_IP/32"
