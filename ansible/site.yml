@@ -16,3 +16,29 @@
   become: true
   roles:
     - role: k3s-agent
+
+
+- name: Fetch kubeconfig from control node to controller machine
+  hosts: k3s_control
+  become: true
+  tasks:
+    - name: Ensure artifacts dir exists on controller
+      local_action: file path=./artifacts state=directory
+
+    - name: Fetch k3s kubeconfig
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ./artifacts/kubeconfig
+        flat: yes
+
+
+- name: Rewrite kubeconfig server address to public control IP (runs on localhost)
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Replace server address in kubeconfig
+      replace:
+        path: ./artifacts/kubeconfig
+        regexp: 'server: https?://[^:]+:6443'
+        replace: 'server: https://{{ hostvars[groups["k3s_control"][0]].ansible_host }}:6443'
+

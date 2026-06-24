@@ -7,7 +7,9 @@
 
 - name: Install k3s server
   shell: |
-    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san {{ ansible_host }}" sh -s - server --node-ip {{ ansible_host }}
+    if [ ! -x /usr/local/bin/k3s ]; then
+      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san {{ ansible_host }}" sh -s - server --node-ip {{ ansible_host }}
+    fi
   args:
     creates: /usr/local/bin/k3s
 
@@ -19,6 +21,9 @@
   until: k3s_active.rc == 0
 
 - name: Save k3s token for agents (copy to /tmp/k3s_token)
-  shell: cat /var/lib/rancher/k3s/server/node-token > /tmp/k3s_token
+  shell: |
+    if [ -f /var/lib/rancher/k3s/server/node-token ]; then
+      cat /var/lib/rancher/k3s/server/node-token > /tmp/k3s_token
+    fi
   args:
     creates: /tmp/k3s_token

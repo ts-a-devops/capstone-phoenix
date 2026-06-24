@@ -6,17 +6,21 @@
     update_cache: yes
 
 - name: Fetch k3s token from server
+- name: Decode token
+  delegate_to: "{{ groups['k3s_control'][0] }}"
   slurp:
     src: /tmp/k3s_token
-  delegate_to: "{{ groups['k3s_control'][0] }}"
   register: token_raw
 
-- name: Decode token
+
+- name: Decode token and trim
   set_fact:
-    k3s_token: "{{ token_raw.content | b64decode }}"
+    k3s_token: "{{ (token_raw.content | b64decode).strip() }}"
 
 - name: Install k3s agent and join server
   shell: |
-    curl -sfL https://get.k3s.io | K3S_URL="https://{{ hostvars[groups['k3s_control'][0]].ansible_host }}:6443" K3S_TOKEN="{{ k3s_token }}" sh -s -
+    if [ ! -x /usr/local/bin/k3s ]; then
+      curl -sfL https://get.k3s.io | K3S_URL="https://{{ hostvars[groups['k3s_control'][0]].ansible_host }}:6443" K3S_TOKEN="{{ k3s_token }}" sh -s -
+    fi
   args:
     creates: /usr/local/bin/k3s
