@@ -1,0 +1,5 @@
+---
+deploy_user: ubuntu
+ssh_public_key_file: "~/.ssh/id_rsa.pub"
+admin_allowed_cidr: "0.0.0.0/0"   # override in group_vars or inventory
+vpc_cidr: "10.10.0.0/16"          # must match Terraform vpc_cidr

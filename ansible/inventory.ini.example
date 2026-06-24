@@ -1,11 +1,15 @@
+# Copy to inventory.ini and fill in real IPs from `terraform output`.
+# NEVER commit inventory.ini — it contains node IPs.
+
 [k3s_control]
-# control ansible_host=1.2.3.4 ansible_user=ubuntu
+control ansible_host=CONTROL_PUBLIC_IP ansible_user=ubuntu
 
 [k3s_workers]
-# worker1 ansible_host=1.2.3.5 ansible_user=ubuntu
-# worker2 ansible_host=1.2.3.6 ansible_user=ubuntu
+worker0 ansible_host=WORKER0_PUBLIC_IP ansible_user=ubuntu
+worker1 ansible_host=WORKER1_PUBLIC_IP ansible_user=ubuntu
 
 [all:vars]
 ansible_python_interpreter=/usr/bin/python3
-ssh_private_key_file=~/.ssh/my-key.pem
-admin_allowed_cidr=203.0.113.4/32
+ansible_ssh_private_key_file=~/.ssh/your-keypair.pem
+admin_allowed_cidr=YOUR_PUBLIC_IP/32
+vpc_cidr=10.10.0.0/16

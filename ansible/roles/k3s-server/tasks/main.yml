@@ -1,29 +1,65 @@
 ---
 - name: Install prerequisites
   apt:
-    name: [curl]
+    name: curl
     state: present
     update_cache: yes
 
 - name: Install k3s server
   shell: |
-    if [ ! -x /usr/local/bin/k3s ]; then
-      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san {{ ansible_host }}" sh -s - server --node-ip {{ ansible_host }}
-    fi
+    curl -sfL https://get.k3s.io | \
+      INSTALL_K3S_VERSION="{{ k3s_version }}" \
+      INSTALL_K3S_EXEC="server \
+        --tls-san {{ ansible_host }} \
+        --tls-san {{ ansible_default_ipv4.address }} \
+        --node-ip {{ ansible_default_ipv4.address }} \
+        --cluster-cidr {{ k3s_cluster_cidr }} \
+        --service-cidr {{ k3s_service_cidr }} \
+        --disable traefik \
+        --write-kubeconfig-mode 644" \
+      sh -s -
   args:
     creates: /usr/local/bin/k3s
 
-- name: Wait for k3s to be active
-  command: systemctl is-active --quiet k3s
-  register: k3s_active
-  retries: 10
-  delay: 3
-  until: k3s_active.rc == 0
+- name: Ensure k3s service is started and enabled
+  service:
+    name: k3s
+    state: started
+    enabled: yes
 
-- name: Save k3s token for agents (copy to /tmp/k3s_token)
-  shell: |
-    if [ -f /var/lib/rancher/k3s/server/node-token ]; then
-      cat /var/lib/rancher/k3s/server/node-token > /tmp/k3s_token
-    fi
-  args:
-    creates: /tmp/k3s_token
+- name: Wait for k3s to be active
+  command: systemctl is-active k3s
+  register: k3s_status
+  retries: 20
+  delay: 5
+  until: k3s_status.stdout == "active"
+  changed_when: false
+
+- name: Wait for node-token file to exist
+  wait_for:
+    path: /var/lib/rancher/k3s/server/node-token
+    state: present
+    timeout: 120
+
+- name: Read node token
+  slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: k3s_node_token_raw
+
+- name: Store token as host fact for agent role
+  set_fact:
+    k3s_node_token: "{{ k3s_node_token_raw.content | b64decode | trim }}"
+
+- name: Wait for kubeconfig to be written
+  wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    state: present
+    timeout: 60
+
+- name: Wait for control-plane node to be Ready
+  command: k3s kubectl get node {{ ansible_hostname }} -o jsonpath='{.status.conditions[-1].type}'
+  register: node_ready
+  retries: 20
+  delay: 10
+  until: node_ready.stdout == "Ready"
+  changed_when: false

@@ -1,32 +1,35 @@
 ---
 - name: Install prerequisites
   apt:
-    name: [curl]
+    name: curl
     state: present
     update_cache: yes
 
-- name: Wait for k3s token to appear on control node
-  delegate_to: "{{ groups['k3s_control'][0] }}"
-  wait_for:
-    path: /tmp/k3s_token
-    state: present
-    timeout: 120
-
-- name: Fetch k3s token from control and decode
-  delegate_to: "{{ groups['k3s_control'][0] }}"
-  slurp:
-    src: /tmp/k3s_token
-  register: token_raw
-
-
-- name: Decode token and trim
+- name: Retrieve k3s token from control-plane node
   set_fact:
-    k3s_token: "{{ (token_raw.content | b64decode).strip() }}"
+    k3s_node_token: "{{ hostvars[groups['k3s_control'][0]].k3s_node_token }}"
 
 - name: Install k3s agent and join server
   shell: |
-    if [ ! -x /usr/local/bin/k3s ]; then
-      curl -sfL https://get.k3s.io | K3S_URL="https://{{ hostvars[groups['k3s_control'][0]].ansible_host }}:6443" K3S_TOKEN="{{ k3s_token }}" sh -s -
-    fi
+    curl -sfL https://get.k3s.io | \
+      INSTALL_K3S_VERSION="{{ k3s_version }}" \
+      K3S_URL="https://{{ hostvars[groups['k3s_control'][0]].ansible_host }}:6443" \
+      K3S_TOKEN="{{ k3s_node_token }}" \
+      sh -s - agent \
+        --node-ip {{ ansible_default_ipv4.address }}
   args:
     creates: /usr/local/bin/k3s
+
+- name: Ensure k3s-agent service is started and enabled
+  service:
+    name: k3s-agent
+    state: started
+    enabled: yes
+
+- name: Wait for k3s-agent to be active
+  command: systemctl is-active k3s-agent
+  register: agent_status
+  retries: 20
+  delay: 5
+  until: agent_status.stdout == "active"
+  changed_when: false
