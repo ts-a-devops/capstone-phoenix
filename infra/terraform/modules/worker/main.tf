@@ -24,12 +24,39 @@ resource "aws_security_group" "worker" {
     cidr_blocks = [var.ssh_allowed_cidr]
   }
 
-  # Allow all intra-VPC traffic for node-to-node k3s/CNI communication
+  # Allow Kubernetes nodePort range from inside VPC
   ingress {
-    description = "All intra-VPC (flannel, kubelet, node-to-node)"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "nodePort range from VPC"
+    from_port   = 30000
+    to_port     = 32767
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  # Allow kubelet API from inside VPC
+  ingress {
+    description = "kubelet"
+    from_port   = 10250
+    to_port     = 10250
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  # Allow Flannel VXLAN (UDP 8472) used by some CNI setups
+  ingress {
+    description = "flannel vxlan"
+    from_port   = 8472
+    to_port     = 8472
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  # Allow etcd client/server ports if using clustered datastore
+  ingress {
+    description = "etcd cluster"
+    from_port   = 2379
+    to_port     = 2380
+    protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
   }
 
