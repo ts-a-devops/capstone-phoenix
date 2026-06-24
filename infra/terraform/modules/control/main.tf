@@ -42,7 +42,7 @@ resource "aws_instance" "control" {
   subnet_id              = element(var.public_subnet_ids, 0)
   associate_public_ip_address = true
   key_name               = var.ssh_key_name
-  vpc_security_group_ids = [aws_security_group.control_sg.id]
+  vpc_security_group_ids = concat([aws_security_group.control_sg.id], var.extra_security_group_ids)
 
   tags = { Name = "${var.cluster_name}-control" }
 }

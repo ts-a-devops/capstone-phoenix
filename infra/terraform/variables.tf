@@ -37,3 +37,9 @@ variable "ssh_allowed_cidr" {
   description = "CIDR allowed to SSH (your IP)"
   type        = string
 }
+
+variable "vpc_cidr" {
+  description = "VPC CIDR block used by modules (for intra-cluster rules)"
+  type        = string
+  default     = "10.10.0.0/16"
+}

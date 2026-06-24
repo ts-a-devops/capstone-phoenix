@@ -36,7 +36,7 @@ resource "aws_instance" "worker" {
   subnet_id              = element(var.public_subnet_ids, count.index % length(var.public_subnet_ids))
   associate_public_ip_address = true
   key_name               = var.ssh_key_name
-  vpc_security_group_ids = [aws_security_group.worker_sg.id]
+  vpc_security_group_ids = concat([aws_security_group.worker_sg.id], var.extra_security_group_ids)
 
   tags = { Name = "${var.cluster_name}-worker-${count.index}" }
 }
