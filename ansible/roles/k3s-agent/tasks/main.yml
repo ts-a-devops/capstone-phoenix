@@ -5,8 +5,14 @@
     state: present
     update_cache: yes
 
-- name: Fetch k3s token from server
-- name: Decode token
+- name: Wait for k3s token to appear on control node
+  delegate_to: "{{ groups['k3s_control'][0] }}"
+  wait_for:
+    path: /tmp/k3s_token
+    state: present
+    timeout: 120
+
+- name: Fetch k3s token from control and decode
   delegate_to: "{{ groups['k3s_control'][0] }}"
   slurp:
     src: /tmp/k3s_token
