@@ -1,0 +1,35 @@
+# Install the k3s control-plane. `creates:` makes this idempotent — a re-run skips reinstall.
+# --node-ip/--advertise-address use the PRIVATE IP (agents join over the VCN); --tls-san adds the
+# PUBLIC IP (and any domains) so your laptop's kubeconfig can reach the API; --flannel-iface pins
+# the primary NIC to avoid OCI's multi-route flannel gotcha.
+- name: Install k3s server
+  ansible.builtin.shell:
+    cmd: >-
+      curl -sfL https://get.k3s.io |
+      INSTALL_K3S_CHANNEL="{{ k3s_channel }}"
+      {% if k3s_version | length > 0 %}INSTALL_K3S_VERSION="{{ k3s_version }}"{% endif %}
+      INSTALL_K3S_EXEC="server
+      --node-ip {{ private_ip }}
+      --advertise-address {{ private_ip }}
+      --flannel-iface {{ ansible_default_ipv4.interface }}
+      --tls-san {{ public_ip }}
+      {% for san in k3s_extra_tls_sans %}--tls-san {{ san }} {% endfor %}
+      {% for c in k3s_disable_components %}--disable {{ c }} {% endfor %}"
+      sh -
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for the node-token to be written (API is up)
+  ansible.builtin.wait_for:
+    path: /var/lib/rancher/k3s/server/node-token
+    timeout: 180
+
+- name: Read the node-token
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: _k3s_token
+
+# Publish as a host fact so the agent play can read it via hostvars[server].
+- name: Expose node-token to the agent play
+  ansible.builtin.set_fact:
+    k3s_node_token: "{{ _k3s_token.content | b64decode | trim }}"

@@ -1,0 +1,7 @@
+# Components k3s ships that we replace ourselves. We install ingress-nginx, so disable Traefik.
+# klipper servicelb is kept so a LoadBalancer-type ingress can bind 80/443 on the node IPs.
+k3s_disable_components:
+  - traefik
+
+# Extra SAN entries baked into the API server cert (add your domain so kubectl over DNS works).
+k3s_extra_tls_sans: []
