@@ -8,7 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  project: default
+  project: phoenix
   source:
     # TODO: point at YOUR fork.
     repoURL: https://github.com/CHANGEME/capstone-phoenix.git

@@ -1,0 +1,34 @@
+# Scoped project replacing the over-broad `default` AppProject. Restricts what Argo may sync:
+# only these repos (so a stray/squatted repoURL can't be deployed) and only these namespaces.
+# Apply this BEFORE root-app.yaml (the Applications reference project: phoenix).
+#
+# clusterResourceWhitelist stays broad because the platform Helm charts (ingress-nginx,
+# cert-manager) legitimately install CRDs/ClusterRoles/webhooks; the real tightening here is
+# sourceRepos + destinations.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: phoenix
+  namespace: argocd
+spec:
+  description: Phoenix capstone — taskapp + platform add-ons
+  sourceRepos:
+    # TODO: replace with YOUR fork URL (same value used in the Applications).
+    - https://github.com/CHANGEME/capstone-phoenix.git
+    - https://kubernetes.github.io/ingress-nginx
+    - https://charts.jetstack.io
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: taskapp
+    - server: https://kubernetes.default.svc
+      namespace: ingress-nginx
+    - server: https://kubernetes.default.svc
+      namespace: cert-manager
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
