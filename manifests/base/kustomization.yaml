@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# All resources land in the taskapp namespace (cluster-scoped ones like the ClusterIssuer are
+# left alone by the namespace transformer).
+namespace: taskapp
+
+commonLabels:
+  app.kubernetes.io/part-of: taskapp
+
+resources:
+  - namespace.yaml
