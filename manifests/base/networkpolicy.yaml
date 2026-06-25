@@ -74,3 +74,22 @@ spec:
       ports:
         - protocol: TCP
           port: 80
+---
+# cert-manager spins up a temporary HTTP-01 solver pod in this namespace during a challenge.
+# Without this, default-deny blocks ingress-nginx from reaching it and the Let's Encrypt cert
+# never issues. Match the solver's well-known label; allow from the ingress-nginx namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acme-solver-from-ingress
+spec:
+  podSelector:
+    matchLabels:
+      acme.cert-manager.io/http01-solver: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
