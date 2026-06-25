@@ -1,0 +1,21 @@
+# Keep at least one replica of each tier up during voluntary disruptions (node drains, upgrades),
+# so the live-failover demo and rollouts never take the tier fully offline.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: taskapp-backend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: taskapp-frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend

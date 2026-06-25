@@ -20,3 +20,6 @@ resources:
   - frontend-svc.yaml
   - issuer.yaml
   - ingress.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+  - hpa.yaml
