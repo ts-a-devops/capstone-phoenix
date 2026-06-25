@@ -1,0 +1,33 @@
+# The app itself — Argo renders manifests/overlays/prod and keeps the cluster reconciled to it.
+# A commit that changes the overlay (e.g. a new image tag) auto-syncs with no manual kubectl.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: taskapp
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    # TODO: point at YOUR fork.
+    repoURL: https://github.com/CHANGEME/capstone-phoenix.git
+    targetRevision: main
+    path: manifests/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: taskapp
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+  # The HPA owns backend replicas; don't let selfHeal fight it back to the manifest value.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: taskapp-backend
+      jsonPointers:
+        - /spec/replicas
