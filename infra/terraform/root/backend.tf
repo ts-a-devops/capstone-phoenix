@@ -1,7 +1,7 @@
 # Remote state in OCI Object Storage via its S3-compatible API (the brief's "S3 equivalent").
 #
 # Backend blocks cannot use variables, so these values are literal — fill them from the
-# `bootstrap` outputs (`cd bootstrap && terraform output`) before running `terraform init` here.
+# `bootstrap` outputs (`cd ../bootstrap && terraform output`) before running `terraform init` here.
 #
 # The backend authenticates with S3 Customer Secret Keys, NOT the API signing key. Export them
 # first (never commit them):
