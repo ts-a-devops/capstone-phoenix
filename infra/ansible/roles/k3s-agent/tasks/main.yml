@@ -1,0 +1,16 @@
+# Join the worker to the control-plane. server_private_ip and k3s_node_token are provided by the
+# play (from the server host's facts). `creates:` keeps the join idempotent.
+- name: Install k3s agent and join the cluster
+  ansible.builtin.shell:
+    cmd: >-
+      curl -sfL https://get.k3s.io |
+      INSTALL_K3S_CHANNEL="{{ k3s_channel }}"
+      {% if k3s_version | length > 0 %}INSTALL_K3S_VERSION="{{ k3s_version }}"{% endif %}
+      K3S_URL="https://{{ server_private_ip }}:6443"
+      K3S_TOKEN="{{ k3s_node_token }}"
+      INSTALL_K3S_EXEC="agent
+      --node-ip {{ private_ip }}
+      --flannel-iface {{ ansible_default_ipv4.interface }}"
+      sh -
+  args:
+    creates: /usr/local/bin/k3s
