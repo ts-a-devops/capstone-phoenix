@@ -13,3 +13,4 @@ resources:
   - configmap.yaml
   - postgres-statefulset.yaml
   - postgres-svc.yaml
+  - migration-job.yaml

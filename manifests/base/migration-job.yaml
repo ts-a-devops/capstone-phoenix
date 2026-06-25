@@ -1,0 +1,48 @@
+# Migrations run here, ONCE per deploy — never in the replicas' entrypoint (2+ backend replicas
+# would race on `alembic upgrade head`). The Argo CD PreSync hook runs this before the app syncs;
+# BeforeHookCreation deletes the previous run so the Job (immutable) can be recreated each time.
+# `alembic upgrade head` is idempotent, so re-running on every sync is safe.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: taskapp-migrate
+  labels:
+    app.kubernetes.io/name: migrate
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migrate
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: ghcr.io/ts-a-devops/taskapp-backend
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: taskapp-config
+            - secretRef:
+                name: taskapp-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
