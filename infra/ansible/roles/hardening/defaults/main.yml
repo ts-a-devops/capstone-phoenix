@@ -1,0 +1,2 @@
+hardening_install_fail2ban: true
+sshd_drop_in_path: /etc/ssh/sshd_config.d/99-hardening.conf

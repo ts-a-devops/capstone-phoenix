@@ -1,0 +1,66 @@
+# --- OCI firewall fix -------------------------------------------------------------------------
+# OCI's Ubuntu image ships iptables rules that REJECT all non-SSH inbound traffic, which blocks
+# the k3s API, flannel VXLAN, and ingress. The OCI NSG is our real edge firewall, so we strip the
+# host-level REJECTs and stop them being restored on boot. Removing an absent rule is a no-op, so
+# a second run reports changed=0 (the brief requires idempotency) — note we do NOT flush, which
+# would also wipe the iptables rules k3s installs for kube-proxy/flannel.
+- name: Remove OCI default REJECT rule (INPUT chain)
+  ansible.builtin.iptables:
+    chain: INPUT
+    jump: REJECT
+    reject_with: icmp-host-prohibited
+    state: absent
+
+- name: Remove OCI default REJECT rule (FORWARD chain)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    jump: REJECT
+    reject_with: icmp-host-prohibited
+    state: absent
+
+- name: Stop persisting the legacy iptables rules
+  ansible.builtin.apt:
+    name:
+      - iptables-persistent
+      - netfilter-persistent
+    state: absent
+
+- name: Remove saved rule files so a reboot can't restore the REJECTs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/iptables/rules.v4
+    - /etc/iptables/rules.v6
+
+# k3s manages its own iptables; a host ufw breaks pod/service networking (per k3s docs), so
+# ensure it is inactive. failed_when:false because ufw may not be installed at all.
+- name: Ensure ufw is stopped and disabled
+  ansible.builtin.systemd:
+    name: ufw
+    state: stopped
+    enabled: false
+  failed_when: false
+
+# --- SSH hardening ----------------------------------------------------------------------------
+# Drop-in wins over the shipped sshd_config: keys only, no root login, no passwords.
+- name: Harden sshd via drop-in
+  ansible.builtin.copy:
+    dest: "{{ sshd_drop_in_path }}"
+    mode: "0644"
+    content: |
+      # Managed by Ansible (hardening role)
+      PermitRootLogin no
+      PasswordAuthentication no
+      PubkeyAuthentication yes
+      KbdInteractiveAuthentication no
+  notify: restart ssh
+
+# --- fail2ban (optional) ----------------------------------------------------------------------
+- name: Install fail2ban
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: hardening_install_fail2ban | bool
