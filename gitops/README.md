@@ -14,8 +14,9 @@ reconciled by Argo — not by you running `kubectl apply` by hand.
 2. Commit a change (e.g. bump frontend replicas 2→3), push.
 3. Show Argo auto-syncing and the new Pod appearing — **no manual apply.**
 
-**Stretch:** a CI job that builds a new image, pushes to GHCR, and bumps the pinned tag in
-this repo → Argo deploys it. That closes the loop your `cd.yaml` started in the CI/CD lesson.
+**Stretch — DONE:** the loop is `app repo cd.yaml` (build + push to GHCR, then `repository_dispatch`)
+→ this repo's `.github/workflows/bump-image.yml` (rewrites the overlay tag, pushes) → Argo auto-syncs.
+The app-repo side is `docs/examples/app-cd.example.yaml`; the bump side runs here.
 
 > Secrets + GitOps: don't commit a plaintext Secret to satisfy "git owns everything." Use
 > Sealed Secrets / External Secrets (stretch) so the encrypted form is safe in git, or create

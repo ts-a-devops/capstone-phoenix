@@ -1,0 +1,49 @@
+# EXAMPLE — this belongs in the TASKAPP SOURCE repo as .github/workflows/cd.yaml, NOT here.
+# It is stored under docs/examples/ so GitHub does not run it from the GitOps repo.
+#
+# It closes the loop: build + push both images to GHCR (pinned to the commit SHA), then fire a
+# repository_dispatch at capstone-phoenix, whose bump-image workflow rewrites the overlay tag and
+# pushes — Argo CD then auto-syncs the new version. Mirrors the cd.yaml from the CI/CD lesson.
+name: Build, push, and trigger GitOps bump
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (pinned to the commit SHA — never :latest)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.component }}
+          push: true
+          tags: ghcr.io/ts-a-devops/taskapp-${{ matrix.component }}:${{ github.sha }}
+
+      - name: Trigger the GitOps tag bump
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          # PAT with `repo` scope on capstone-phoenix, stored as a secret in THIS (app) repo.
+          token: ${{ secrets.GITOPS_DISPATCH_TOKEN }}
+          repository: CHANGEME/capstone-phoenix
+          event-type: image-published
+          client-payload: '{"component": "${{ matrix.component }}", "tag": "${{ github.sha }}"}'
