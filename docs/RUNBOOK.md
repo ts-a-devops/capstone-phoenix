@@ -46,10 +46,21 @@ export KUBECONFIG="$PWD/kubeconfig"
 kubectl get nodes -o wide                         # server + 2 workers = Ready
 ```
 
-## 4. The out-of-band Secret (not in git)
+## 4. Provide the Secret — pick one
+Fill real values first: `cp manifests/base/secret.example.yaml /tmp/secret.yaml` (set
+`POSTGRES_PASSWORD`, `SECRET_KEY`, `DATABASE_URL`).
+
+**Option A — Sealed Secrets (git-native, recommended).** Do this *after* step 5 brings up the
+sealed-secrets controller, then git holds the encrypted Secret:
+```bash
+manifests/seal-secret.sh /tmp/secret.yaml      # -> manifests/base/taskapp-sealedsecret.yaml
+# add taskapp-sealedsecret.yaml to manifests/base/kustomization.yaml resources, commit, push
+# Argo syncs it; the controller decrypts it in-cluster into the taskapp-secret Secret
+```
+
+**Option B — out-of-band (simplest).** Apply a plain Secret by hand; Argo ignores it:
 ```bash
 kubectl create namespace taskapp
-cp ../../manifests/base/secret.example.yaml /tmp/secret.yaml   # fill real POSTGRES_PASSWORD, SECRET_KEY, DATABASE_URL
 kubectl apply -n taskapp -f /tmp/secret.yaml
 ```
 

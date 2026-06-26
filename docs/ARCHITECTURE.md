@@ -62,8 +62,10 @@ on a `local-path` PVC).
   same-origin routing and first-class cert-manager integration. Kept klipper servicelb for the LB.
 - **NetworkPolicy enforced by k3s' built-in kube-router** — no Calico needed; default-deny + a rule
   for the ACME HTTP-01 solver so cert issuance still works under deny.
-- **Secrets out-of-band** — `secret.example.yaml` documents the shape; the real Secret is applied
-  by hand and Argo ignores it. Upgrade path: Sealed/External Secrets (stretch) to put it in git.
+- **Secrets via Sealed Secrets (encrypted, in git)** — `manifests/seal-secret.sh` + the
+  sealed-secrets controller turn the real Secret into a committable `SealedSecret` only the cluster
+  can decrypt, so git holds the full desired state. The plain out-of-band `kubectl apply` of a
+  Secret (`secret.example.yaml` shows the shape) remains the simpler fallback.
 - **`local-path` storage** — k3s default, simplest; trade-off is the PV is node-pinned (survives pod
   delete, not node loss). HA Postgres is a stretch goal, intentionally deferred.
 - **Remote state on OCI Object Storage (S3-compat)** — the OCI "equivalent" of S3; locking is the
