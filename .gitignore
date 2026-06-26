@@ -29,6 +29,9 @@ charts/*.tgz
 # personal/local notes (not deliverables) — e.g. cloud setup cheat-sheets
 notes/
 
+# AWS study mirror — kept local for OCI-vs-AWS comparison, never deployed/graded
+infra-aws/
+
 # ansible generated (IPs change every apply — generate from terraform outputs, don't commit)
 infra/ansible/inventory/hosts.yml
 *.retry
