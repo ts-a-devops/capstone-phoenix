@@ -1,0 +1,88 @@
+# GitOps loop-closer: bump a pinned image tag in the prod overlay, commit, push -> Argo syncs.
+# Trigger it manually, or have the app repo's CD fire a repository_dispatch after it pushes a new
+# image to GHCR (see docs/examples/app-cd.example.yaml). This is the capstone stretch:
+# "CI builds/pushes a new image and bumps the tag in the GitOps repo".
+name: Bump image tag (GitOps)
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Which image to bump
+        required: true
+        type: choice
+        options: [backend, frontend]
+      tag:
+        description: New tag (commit SHA or semver)
+        required: true
+        type: string
+  repository_dispatch:
+    types: [image-published]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Untrusted inputs (esp. repository_dispatch payload) flow through env vars and are
+      # validated against an allowlist/charset BEFORE use — no interpolation into the shell body.
+      - name: Resolve and validate inputs
+        id: in
+        env:
+          EVENT: ${{ github.event_name }}
+          RD_COMPONENT: ${{ github.event.client_payload.component }}
+          RD_TAG: ${{ github.event.client_payload.tag }}
+          WD_COMPONENT: ${{ inputs.component }}
+          WD_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "repository_dispatch" ]; then
+            component="$RD_COMPONENT"; tag="$RD_TAG"
+          else
+            component="$WD_COMPONENT"; tag="$WD_TAG"
+          fi
+          case "$component" in
+            backend|frontend) ;;
+            *) echo "::error::component must be backend or frontend, got '$component'"; exit 1 ;;
+          esac
+          if ! printf '%s' "$tag" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$'; then
+            echo "::error::tag '$tag' is not a valid image tag"; exit 1
+          fi
+          echo "component=$component" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Install kustomize
+        run: |
+          set -euo pipefail
+          curl -sfL "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo install -m 0755 kustomize /usr/local/bin/kustomize
+
+      - name: Bump the pinned tag
+        working-directory: manifests/overlays/prod
+        env:
+          COMPONENT: ${{ steps.in.outputs.component }}
+          TAG: ${{ steps.in.outputs.tag }}
+        run: |
+          set -euo pipefail
+          img="ghcr.io/ts-a-devops/taskapp-${COMPONENT}"
+          kustomize edit set image "${img}=${img}:${TAG}"
+
+      - name: Commit and push
+        env:
+          COMPONENT: ${{ steps.in.outputs.component }}
+          TAG: ${{ steps.in.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifests/overlays/prod/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "No tag change — nothing to commit."
+            exit 0
+          fi
+          git commit -m "ci: bump ${COMPONENT} image to ${TAG}"
+          git push
