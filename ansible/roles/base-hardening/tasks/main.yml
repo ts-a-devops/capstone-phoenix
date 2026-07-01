@@ -1,0 +1,99 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install baseline packages
+  apt:
+    name:
+      - ufw
+      - fail2ban
+      - curl
+      - unattended-upgrades
+    state: present
+
+- name: Ensure deploy user exists
+  user:
+    name: "{{ deploy_user }}"
+    groups: sudo
+    shell: /bin/bash
+    state: present
+    create_home: true
+
+- name: Authorize SSH key for deploy user
+  authorized_key:
+    user: "{{ deploy_user }}"
+    state: present
+    key: "{{ lookup('file', ssh_public_key_file) }}"
+
+- name: Harden SSH — disable password auth
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+  notify: restart ssh
+
+- name: Harden SSH — disable root login
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: 'PermitRootLogin no'
+  notify: restart ssh
+
+- name: Harden SSH — disable challenge-response auth
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?ChallengeResponseAuthentication'
+    line: 'ChallengeResponseAuthentication no'
+  notify: restart ssh
+
+- name: UFW — reset to defaults (idempotent)
+  ufw:
+    state: reset
+
+- name: UFW — default deny incoming
+  ufw:
+    default: deny
+    direction: incoming
+
+- name: UFW — default allow outgoing
+  ufw:
+    default: allow
+    direction: outgoing
+
+- name: UFW — allow SSH from admin CIDR only
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    from_ip: "{{ admin_allowed_cidr }}"
+
+- name: UFW — allow HTTP from world (ingress controller on control node)
+  ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+  when: "'k3s_control' in group_names"
+
+- name: UFW — allow HTTPS from world (ingress controller on control node)
+  ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+  when: "'k3s_control' in group_names"
+
+- name: UFW — allow all intra-VPC traffic (k3s API, flannel, kubelet, etcd)
+  ufw:
+    rule: allow
+    from_ip: "{{ vpc_cidr }}"
+
+- name: UFW — enable
+  ufw:
+    state: enabled
+
+- name: Enable fail2ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes

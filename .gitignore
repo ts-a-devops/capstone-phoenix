@@ -13,11 +13,16 @@ k3s.yaml
 node-token
 *.token
 
+# Ansible runtime files
+ansible/inventory.ini
+ansible/artifacts/
+
 # secrets / env
 .env
 .env.*
 !.env.example
 *secret*.yaml
+!manifests/taskapp/secret.yaml
 !*secret*.example.yaml
 *.pem
 *.key

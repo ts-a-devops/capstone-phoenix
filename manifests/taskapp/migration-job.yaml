@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: taskapp-migrate
+  namespace: taskapp
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: taskapp-migrate
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: busybox:1.36.1
+          command:
+            - sh
+            - -c
+            - |
+              echo "migration placeholder: no real database migration needed for demo"
+          env:
+            - name: DATABASE_HOST
+              value: postgres
+            - name: DATABASE_NAME
+              value: taskapp
+            - name: DATABASE_USER
+              value: taskapp
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: taskapp-secrets
+                  key: DATABASE_PASSWORD

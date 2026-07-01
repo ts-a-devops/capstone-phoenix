@@ -1,0 +1,2 @@
+---
+k3s_version: "v1.31.4+k3s1"   # must match k3s-server role

@@ -1,0 +1,82 @@
+---
+# Full cluster provisioning playbook.
+# Run: ansible-playbook -i inventory.ini site.yml
+# Idempotent: safe to run multiple times.
+
+- name: Base hardening — all nodes
+  hosts: k3s_control:k3s_workers
+  become: true
+  roles:
+    - role: base-hardening
+
+- name: Install k3s server (control-plane)
+  hosts: k3s_control
+  become: true
+  roles:
+    - role: k3s-server
+
+- name: Join k3s agents (workers)
+  hosts: k3s_workers
+  become: true
+  roles:
+    - role: k3s-agent
+
+- name: Install Kubernetes platform components
+  hosts: k3s_control
+  become: true
+  roles:
+    - role: k8s-platform
+
+- name: Fetch kubeconfig from control-plane
+  hosts: k3s_control
+  become: true
+  tasks:
+    - name: Ensure local artifacts/ directory exists
+      delegate_to: localhost
+      become: false
+      file:
+        path: "{{ playbook_dir }}/artifacts"
+        state: directory
+        mode: "0700"
+
+    - name: Fetch k3s kubeconfig
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "{{ playbook_dir }}/artifacts/kubeconfig"
+        flat: yes
+
+- name: Rewrite kubeconfig server address to control-plane public IP
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Replace 127.0.0.1 with control-plane public IP in kubeconfig
+      replace:
+        path: "{{ playbook_dir }}/artifacts/kubeconfig"
+        regexp: 'server: https?://[^:]+:6443'
+        replace: "server: https://{{ hostvars[groups['k3s_control'][0]].ansible_host }}:6443"
+
+    - name: Set kubeconfig permissions (owner read-only)
+      file:
+        path: "{{ playbook_dir }}/artifacts/kubeconfig"
+        mode: "0600"
+
+    - name: Show how to use kubeconfig
+      debug:
+        msg: >
+          kubeconfig written to artifacts/kubeconfig.
+          Export: export KUBECONFIG={{ playbook_dir }}/artifacts/kubeconfig
+          Verify: kubectl get nodes
+
+- name: Verify cluster — all nodes Ready
+  hosts: k3s_control
+  become: true
+  tasks:
+    - name: Get node statuses
+      command: k3s kubectl get nodes -o wide
+      register: nodes_out
+      changed_when: false
+
+    - name: Print node statuses
+      debug:
+        msg: "{{ nodes_out.stdout_lines }}"

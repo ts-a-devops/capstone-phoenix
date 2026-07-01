@@ -1,0 +1,74 @@
+---
+- name: Install nginx ingress controller
+  shell: |
+    k3s kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.2/deploy/static/provider/cloud/deploy.yaml
+  register: ingress_install
+  changed_when: ingress_install.rc == 0
+
+- name: Wait for ingress-nginx controller deployment
+  shell: |
+    k3s kubectl rollout status deployment ingress-nginx-controller -n ingress-nginx --timeout=180s
+  register: ingress_ready
+  retries: 20
+  delay: 15
+  until: ingress_ready.rc == 0
+  changed_when: false
+
+- name: Install cert-manager CRDs
+  shell: |
+    k3s kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.crds.yaml
+  register: cert_crds
+  changed_when: cert_crds.rc == 0
+
+- name: Install cert-manager
+  shell: |
+    k3s kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
+  register: cert_install
+  changed_when: cert_install.rc == 0
+
+- name: Wait for cert-manager deployments
+  shell: |
+    k3s kubectl rollout status deployment cert-manager -n cert-manager --timeout=180s && \
+    k3s kubectl rollout status deployment cert-manager-cainjector -n cert-manager --timeout=180s && \
+    k3s kubectl rollout status deployment cert-manager-webhook -n cert-manager --timeout=180s
+  register: cert_ready
+  retries: 20
+  delay: 15
+  until: cert_ready.rc == 0
+  changed_when: false
+
+- name: Install metrics-server
+  shell: |
+    k3s kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+  register: metrics_install
+  changed_when: metrics_install.rc == 0
+
+- name: Wait for metrics-server deployment
+  shell: |
+    k3s kubectl rollout status deployment metrics-server -n kube-system --timeout=180s
+  register: metrics_ready
+  retries: 20
+  delay: 15
+  until: metrics_ready.rc == 0
+  changed_when: false
+
+- name: Ensure argocd namespace exists
+  shell: |
+    k3s kubectl get namespace argocd >/dev/null 2>&1 || k3s kubectl create namespace argocd
+  register: argocd_ns
+  changed_when: argocd_ns.rc == 0 and 'created' in argocd_ns.stdout
+
+- name: Install Argo CD
+  shell: |
+    k3s kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  register: argocd_install
+  changed_when: argocd_install.rc == 0
+
+- name: Wait for Argo CD server deployment
+  shell: |
+    k3s kubectl rollout status deployment argocd-server -n argocd --timeout=180s
+  register: argocd_ready
+  retries: 20
+  delay: 15
+  until: argocd_ready.rc == 0
+  changed_when: false
