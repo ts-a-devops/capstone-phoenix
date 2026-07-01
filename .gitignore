@@ -22,6 +22,7 @@ ansible/artifacts/
 .env.*
 !.env.example
 *secret*.yaml
+!manifests/taskapp/secret.yaml
 !*secret*.example.yaml
 *.pem
 *.key
