@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/Precious2003/capstone-phoenix.git
-    targetRevision: HEAD
+    targetRevision: feature/infra-terraform-skeleton
     path: manifests/taskapp
   destination:
     server: https://kubernetes.default.svc
