@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/Precious2003/capstone-phoenix.git
-    targetRevision: 80521254080bfbda6d78a6f1dcb39feb406849be
+    targetRevision: f5864c9c8728bb69ab088bc47c81a272a1d6abf8
     path: manifests/taskapp
   destination:
     server: https://kubernetes.default.svc
