@@ -11,8 +11,8 @@
       INSTALL_K3S_VERSION="{{ k3s_version }}" \
       INSTALL_K3S_EXEC="server \
         --tls-san {{ ansible_host }} \
-        --tls-san {{ ansible_default_ipv4.address }} \
-        --node-ip {{ ansible_default_ipv4.address }} \
+        --tls-san {{ ansible_facts.default_ipv4.address }} \
+        --node-ip {{ ansible_facts.default_ipv4.address }} \
         --cluster-cidr {{ k3s_cluster_cidr }} \
         --service-cidr {{ k3s_service_cidr }} \
         --disable traefik \
@@ -57,9 +57,9 @@
     timeout: 60
 
 - name: Wait for control-plane node to be Ready
-  command: k3s kubectl get node {{ ansible_hostname }} -o jsonpath='{.status.conditions[-1].type}'
-  register: node_ready
+  command: k3s kubectl get nodes -o jsonpath='{.items[*].status.conditions[-1].type}'
+  register: nodes_ready
   retries: 20
   delay: 10
-  until: node_ready.stdout == "Ready"
+  until: '"Ready" in nodes_ready.stdout'
   changed_when: false

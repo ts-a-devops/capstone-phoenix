@@ -71,9 +71,9 @@ resource "aws_security_group" "worker" {
 }
 
 resource "aws_instance" "worker" {
-  count                       = var.worker_count
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.instance_type
+  count         = var.worker_count
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = var.instance_type
   # Spread workers across subnets (= AZs) so pod anti-affinity works
   subnet_id                   = var.public_subnet_ids[count.index % length(var.public_subnet_ids)]
   associate_public_ip_address = true

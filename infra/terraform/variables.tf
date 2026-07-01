@@ -55,3 +55,13 @@ variable "ssh_allowed_cidr" {
   description = "Your public IP in CIDR notation (e.g. 1.2.3.4/32) — only this IP can SSH"
   type        = string
 }
+
+variable "state_bucket_name" {
+  description = "S3 bucket name for Terraform remote state (bootstrap via remote-state/)"
+  type        = string
+}
+
+variable "lock_table_name" {
+  description = "DynamoDB table name for Terraform state locking (bootstrap via remote-state/)"
+  type        = string
+}

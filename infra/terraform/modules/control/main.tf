@@ -39,7 +39,7 @@ resource "aws_security_group" "control" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   # Allow Kubernetes nodePort range and kubelet from inside VPC
   ingress {
     from_port   = 30000

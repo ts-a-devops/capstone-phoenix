@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: taskapp-migrate
+  namespace: taskapp
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: taskapp-migrate
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: ghcr.io/ts-a-devops/taskapp-backend:v1.0.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Run DB migration"
+              # Replace this with the app's real migration command.
+              sleep 5
+          env:
+            - name: DATABASE_HOST
+              value: postgres
+            - name: DATABASE_NAME
+              value: taskapp
+            - name: DATABASE_USER
+              value: taskapp
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: taskapp-secrets
+                  key: DATABASE_PASSWORD

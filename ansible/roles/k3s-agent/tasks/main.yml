@@ -9,21 +9,36 @@
   set_fact:
     k3s_node_token: "{{ hostvars[groups['k3s_control'][0]].k3s_node_token }}"
 
+- name: Ensure k3s agent systemd env file exists
+  copy:
+    dest: /etc/systemd/system/k3s-agent.service.env
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      K3S_URL="https://{{ hostvars[groups['k3s_control'][0]].ansible_facts.default_ipv4.address }}:6443"
+      K3S_TOKEN="{{ k3s_node_token }}"
+
 - name: Install k3s agent and join server
   shell: |
     curl -sfL https://get.k3s.io | \
       INSTALL_K3S_VERSION="{{ k3s_version }}" \
-      K3S_URL="https://{{ hostvars[groups['k3s_control'][0]].ansible_host }}:6443" \
+      K3S_URL="https://{{ hostvars[groups['k3s_control'][0]].ansible_facts.default_ipv4.address }}:6443" \
       K3S_TOKEN="{{ k3s_node_token }}" \
       sh -s - agent \
-        --node-ip {{ ansible_default_ipv4.address }}
+        --node-ip {{ ansible_facts.default_ipv4.address }}
   args:
     creates: /usr/local/bin/k3s
 
-- name: Ensure k3s-agent service is started and enabled
+- name: Reload systemd configuration if k3s agent env changed
+  command: systemctl daemon-reload
+  when: ansible_service_mgr == 'systemd'
+  changed_when: false
+
+- name: Restart k3s-agent to pick up env config
   service:
     name: k3s-agent
-    state: started
+    state: restarted
     enabled: yes
 
 - name: Wait for k3s-agent to be active

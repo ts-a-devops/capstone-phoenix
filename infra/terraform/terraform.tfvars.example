@@ -17,3 +17,8 @@ worker_count          = 2
 # Auth — replace with your actual key pair name and your public IP
 ssh_key_name     = "your-keypair-name"
 ssh_allowed_cidr = "YOUR_PUBLIC_IP/32"
+
+# Remote state (bootstrap using `terraform apply` in remote-state/ then set these)
+# Example names — change to globally unique S3 bucket and a DynamoDB table name
+state_bucket_name = "capstone-phoenix-terraform-state-<your-suffix>"
+lock_table_name   = "capstone-phoenix-terraform-locks"

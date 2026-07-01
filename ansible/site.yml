@@ -21,13 +21,20 @@
   roles:
     - role: k3s-agent
 
+- name: Install Kubernetes platform components
+  hosts: k3s_control
+  become: true
+  roles:
+    - role: k8s-platform
+
 - name: Fetch kubeconfig from control-plane
   hosts: k3s_control
   become: true
   tasks:
     - name: Ensure local artifacts/ directory exists
-      local_action:
-        module: file
+      delegate_to: localhost
+      become: false
+      file:
         path: "{{ playbook_dir }}/artifacts"
         state: directory
         mode: "0700"

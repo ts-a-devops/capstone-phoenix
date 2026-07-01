@@ -75,6 +75,7 @@ module "control" {
   ssh_allowed_cidr         = var.ssh_allowed_cidr
   vpc_id                   = module.vpc.vpc_id
   subnet_id                = module.vpc.public_subnet_ids[0]
+  vpc_cidr                 = var.vpc_cidr
   extra_security_group_ids = [aws_security_group.cluster_internal.id]
 }
 

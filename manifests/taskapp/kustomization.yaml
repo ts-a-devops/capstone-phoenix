@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
+  - backend-service.yaml
+  - backend-deployment.yaml
+  - frontend-service.yaml
+  - frontend-deployment.yaml
+  - migration-job.yaml
+  - ingress.yaml
+  - clusterissuer.yaml
+  - networkpolicies.yaml
+  - poddisruptionbudget.yaml
+  - backend-hpa.yaml
