@@ -5,7 +5,7 @@ metadata:
 spec:
   acme:
     # Replace this email with the real contact address for your ACME account.
-    email: admin@example.com
+    email: admin@precious2003.dev
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-prod
