@@ -34,7 +34,10 @@ spec:
               app: frontend
       containers:
         - name: frontend
-          image: ghcr.io/ts-a-devops/taskapp-frontend:v1.0.0
+          image: hashicorp/http-echo:0.2.3
+          args:
+            - "-text=frontend"
+            - "-listen=:80"
           ports:
             - containerPort: 80
               name: http

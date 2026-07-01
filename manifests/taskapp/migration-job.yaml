@@ -13,14 +13,12 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: migrate
-          image: ghcr.io/ts-a-devops/taskapp-backend:v1.0.0
+          image: busybox:1.36.1
           command:
-            - /bin/sh
+            - sh
             - -c
             - |
-              echo "Run DB migration"
-              # Replace this with the app's real migration command.
-              sleep 5
+              echo "migration placeholder: no real database migration needed for demo"
           env:
             - name: DATABASE_HOST
               value: postgres

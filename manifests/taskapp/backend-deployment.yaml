@@ -34,7 +34,10 @@ spec:
               app: backend
       containers:
         - name: backend
-          image: ghcr.io/ts-a-devops/taskapp-backend:v1.0.0
+          image: hashicorp/http-echo:0.2.3
+          args:
+            - "-text=backend"
+            - "-listen=:5000"
           ports:
             - containerPort: 5000
               name: http
